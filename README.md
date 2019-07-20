@@ -9,6 +9,10 @@ Terraform Infra: terraform will create
   AZ : us-east-2 [all 3 AZs]
   Network: VPC, Subnets (public/private), NAT, IG, Route Table etc..
   EC2 : 1 bastion host with public IP, 3 master nodes, 3 worker node
+  EC2 instances are tagged : when you use Kubespray dynamic inventory, you need to tag your master and worker nodes.
+    Master nodes tag -- kubespray-role = "kube-master, etcd"
+    Worker nodes tag -- kubespray-role = "kube-node"   
+ 
 
 Prerequits:
   1). AWS account
@@ -16,6 +20,9 @@ Prerequits:
   3). key pair
   
   4). iam profile - for master and worker nodes, so we can provision required resources in k8s like LoadBalancer
+      In given terraform i have create 2 IAM role and attached role-policy 
+      Master IAM profile - kubeSprayMasterPolicy, Worker IAM profile - kubeSprayWorkerPolicy
+      More Info: https://github.com/kubernetes-sigs/kubespray/tree/master/contrib/aws_iam
   
 Steps:
  1). Clone this repo
