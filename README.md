@@ -5,12 +5,16 @@ Cloud Provider : AWS
 Highly available Kubernetes cluster
 -----------------------------------
 Tools used kubespray [Setup k8s cluster], terraform [build infrastrucutre], custom bash script to setup python, Ansible env.
-Terraform Infra: terraform will create VPC, Subnets (public/private), NAT, 
+Terraform Infra: terraform will create
+  AZ : us-east-2 [all 3 AZs]
+  Network: VPC, Subnets (public/private), NAT, IG, Route Table etc..
+  EC2 : 1 bastion host with public IP, 3 master nodes, 3 worker node
 
 Prerequits:
   1). AWS account
   2). IAM user with admin permissions
   3). key pair
+  4). iam profile - for master and worker nodes, so we can provision required resources in k8s like LoadBalancer
   
 Steps:
  1). Clone this repo
