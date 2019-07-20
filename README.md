@@ -12,8 +12,11 @@ Terraform Infra: terraform will create
 
 Prerequits:
   1). AWS account
+  
   2). IAM user with admin permissions
+  
   3). key pair
+  
   4). iam profile - for master and worker nodes, so we can provision required resources in k8s like LoadBalancer
   
 Steps:
