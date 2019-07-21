@@ -1,0 +1,44 @@
+//Jenkinsfile
+node {
+
+  stage('Verify Helm Tiller') {
+    withKubeConfig([credentialsId: 'jenkins-deployer-credentials', serverUrl: 'https://10.0.1.204:6443']) {
+      
+    	sh 'kubectl get pods --namespace kube-system | grep tiller'
+    }
+  }
+  
+   stage('Install Prometheus') {
+	
+    withKubeConfig([credentialsId: 'jenkins-deployer-credentials', serverUrl: 'https://10.0.1.204:6443']) {
+      sh 'helm inspect values stable/prometheus > prometheus.value'
+      sh 'helm install stable/prometheus --name prometheus --namespace monitoring --set prometheus.persistentVolume.enabled=false --set server.persistentVolume.enabled=false --set alertmanager.persistentVolume.enabled=false'
+    }
+  }
+
+   stage('Install Grafana') {
+    withKubeConfig([credentialsId: 'jenkins-deployer-credentials', serverUrl: 'https://10.0.1.204:6443']) {
+      
+      sh 'helm inspect values stable/grafana  > grafana.value'
+      sh "sed -i ':a;N;\$!ba;s/type: ClusterIP/type: LoadBalancer/1' grafana.value"
+      sh 'helm install stable/grafana --name grafana --namespace monitoring --values grafana.value'
+}
+  }
+   stage('Get Grafana login Details') {
+    withKubeConfig([credentialsId: 'jenkins-deployer-credentials', serverUrl: 'https://10.0.1.204:6443']) {
+      //Get Grafana LoadBalancer EndPoint
+      sh 'sleep 30'
+      sh '''
+     	#!/bin/bash
+     	LB=$(kubectl get svc grafana -n monitoring -o jsonpath="{.status.loadBalancer.ingress[0].hostname}");
+     	PASSWD=$(kubectl get secret -n monitoring grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo);
+     	echo "Grafana URL -- $LB"
+     	echo "Grafana User: admin, Password: $PASSWD"
+     	'''
+      //sh 'kubectl get svc grafana -n monitoring -o jsonpath="{.status.loadBalancer.ingress[0].hostname}"'
+      //Get Grafana admin password using below command
+      //sh 'kubectl get secret -n monitoring grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo'
+    }
+  }
+  
+}

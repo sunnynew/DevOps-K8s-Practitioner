@@ -1,0 +1,13 @@
+kubernetes
+kubernetes-cli
+git
+blueocean
+ansible
+credentials-binding
+workflow-aggregator
+workflow-job
+custom-tools-plugin
+bitbucket
+kubernetes-pipeline-devops-steps
+kubernetes-pipeline-steps
+kubernetes-pipeline-aggregator

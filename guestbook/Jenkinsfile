@@ -1,0 +1,49 @@
+//Jenkinsfile
+node {
+
+  stage('Preparation') {
+    //Installing kubectl in Jenkins agent
+    sh 'curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl'
+    sh 'chmod +x ./kubectl && cp kubectl /tmp/'
+	sh 'chmod +x ./kubectl && mv kubectl /usr/local/bin/'
+
+	//Clone git repository
+	git url:'https://github.com/kubernetes/examples.git'
+  }
+  
+    stage('Creating development Namespace') {
+    withKubeConfig([credentialsId: 'jenkins-deployer-credentials', serverUrl: 'https://10.0.1.204:6443']) {
+      
+    	//sh 'kubectl create ns development'
+    	sh(returnStdout: true, script: '''#!/bin/bash
+            if [ `kubectl get ns|grep development|wc -l` -lt 1 ];then
+               kubectl create ns development
+            fi
+        '''.stripIndent())
+    }
+  }
+
+  stage('Deploy Guestbook Redis Master/Slave/Service') {
+	//Setup Redis 
+    withKubeConfig([credentialsId: 'jenkins-deployer-credentials', serverUrl: 'https://10.0.1.204:6443']) {
+      
+      sh 'kubectl apply -f guestbook/redis-master-deployment.yaml --namespace=development'
+      sh 'kubectl apply -f guestbook/redis-master-service.yaml --namespace=development'
+      sh 'kubectl apply -f guestbook/redis-slave-deployment.yaml --namespace=development'
+    }
+  }
+  stage('Deploy Guestbook Frontend') {
+	//Deploy Frontend app
+    withKubeConfig([credentialsId: 'jenkins-deployer-credentials', serverUrl: 'https://10.0.1.204:6443']) {
+      
+      sh 'kubectl apply -f guestbook/frontend-deployment.yaml --namespace=development'
+      sh 'kubectl apply -f guestbook/frontend-service.yaml --namespace=development'
+    }
+  }
+  stage('Verify Pods/SVC Production') {
+    withKubeConfig([credentialsId: 'jenkins-deployer-credentials', serverUrl: 'https://10.0.1.204:6443']) {
+      
+    	sh 'kubectl get po,svc -n development'
+    }
+  }
+}

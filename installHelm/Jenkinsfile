@@ -1,0 +1,28 @@
+//Jenkinsfile
+node {
+
+  stage('Preparation') {
+    //Installing helm in Jenkins agent
+    sh 'curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get > get_helm.sh'
+    sh 'chmod 700 get_helm.sh'
+	sh './get_helm.sh'
+  }
+    stage('Tiller serviceaccount and cluster-admin role binding') {	
+    withKubeConfig([credentialsId: 'jenkins-deployer-credentials', serverUrl: 'https://10.0.1.204:6443']) {
+      
+      sh 'kubectl -n kube-system create serviceaccount tiller'
+      sh 'kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller'
+    }
+  }
+  
+  stage('Install Tiller on K8s') {
+    withKubeConfig([credentialsId: 'jenkins-deployer-credentials', serverUrl: 'https://10.0.1.204:6443']) {
+      sh 'helm init --service-account tiller'
+    }
+  }
+  stage('Verify Helm Tiller') {
+    withKubeConfig([credentialsId: 'jenkins-deployer-credentials', serverUrl: 'https://10.0.1.204:6443']) {
+    	sh 'kubectl get pods --namespace kube-system | grep tiller'
+    }
+  }
+}

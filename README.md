@@ -4,53 +4,73 @@ Cloud Provider : AWS
 
 Highly available Kubernetes cluster
 -----------------------------------
-Tools used kubespray [Setup k8s cluster], terraform [build infrastrucutre], custom bash script to setup python, Ansible env.
-Terraform Infra: terraform will create
-  AZ : us-east-2 [all 3 AZs]
-  Network: VPC, Subnets (public/private), NAT, IG, Route Table etc..
-  EC2 : 1 bastion host with public IP, 3 master nodes, 3 worker node
-  EC2 instances are tagged : when you use Kubespray dynamic inventory, you need to tag your master and worker nodes.
-    Master nodes tag -- kubespray-role = "kube-master, etcd"
-    Worker nodes tag -- kubespray-role = "kube-node"   
+Tools used kubespray [Setup k8s cluster], terraform [build infrastructure], custom bash script to setup prerequisites like python, ansible, kubectl etc..
+
+Terraform module will create:
+  - Network: VPC, Subnets (public/private), NAT, IG, Route Table etc in us-east-2 [all 3 AZs]
+  - AMI used : ubuntu 18.04
+  - EC2 : 1 bastion host with public IP, 3 master nodes, 3 worker nodes
+  - EC2 instances are tagged : when we use Kubespray dynamic inventory, we need to tag master and worker nodes.
+  	- Master nodes tag -- kubespray-role = "kube-master, etcd"
+  	- Worker nodes tag -- kubespray-role = "kube-node"   
  
-
-Prerequits:
-  1). AWS account
-  2). IAM user with admin permissions
-  3). key pair
+Prerequisites:
+  - AWS account
+  - IAM user with admin rights
+  - key pair
+  - iam profile - for master and worker nodes, we need this to provision required resources in k8s like LoadBalancer
+      - In given terraform we have create 2 IAM roles and attached role-policy 
+      - Master IAM profile - kubeSprayMasterPolicy, Worker IAM profile - kubeSprayWorkerPolicy
+      - More Info: https://github.com/kubernetes-sigs/kubespray/tree/master/contrib/aws_iam
+      - Check kubernetes-role-policy folder in this repo.
   
-  4). iam profile - for master and worker nodes, so we can provision required resources in k8s like LoadBalancer
-      In given terraform i have create 2 IAM role and attached role-policy 
-      Master IAM profile - kubeSprayMasterPolicy, Worker IAM profile - kubeSprayWorkerPolicy
-      More Info: https://github.com/kubernetes-sigs/kubespray/tree/master/contrib/aws_iam
-  
-Steps:
- 1). Clone this repo
- 2). cd terraform folder 
- 3). Change values in variables.tf file : access_key, secret_key, key_name [key pair name]
-Create a Highly available Kubernetes cluster manually using Google Compute Engines (GCE). Do not create
-a Kubernetes hosted solution using Google Kubernetes Engine (GKE). Use Kubeadm(preferred)/kubespray.
-Do not use kops.
 
-Setup Jenkins
--------------
-Run jenkins as docker container, 
-2. Create a CI/CD pipeline using Jenkins (or a CI tool of your choice) outside Kubernetes cluster (not as a pod
-inside Kubernetes cluster).
-3. Create a development namespace.
-4. Deploy guest-book application (or any other application which you think is more suitable to showcase your
-ability, kindly justify why you have chosen a different application) in the development namespace.
-5. Install and configure Helm in Kubernetes
-6. Use Helm to deploy the application on Kubernetes Cluster from CI server.
-7. Create a monitoring namespace in the cluster.
-8. Setup Prometheus (in monitoring namespace) for gathering host/container metrics along with health
-check status of the application.
-9. Create a dashboard using Grafana to help visualize the Node/Container/API Server etc. metrices from
-Prometheus server. Optionally create a custom dashboard on Grafana
-10. Setup log analysis using Elasticsearch, Fluentd (or Filebeat), Kibana.
-11. Demonstrate Blue/Green and Canary deployment for the application (For e.g. Change the background
-color or font in the new version etc.,)
-12. Write a wrapper script (or automation mechanism of your choice) which does all the steps above.
-13. Document the whole process in a README file at the root of your repo. Mention any pre-requisites in the
-README.
-Kubespray, Helm, Jenkins, CI/CI Pipeline, Prometheus, Grafana, Elasticsearch, Fluentd, Kibana, Blue/Green deployment, Terraform
+# Highly available Kubernetes cluster using kubespray on AWS cloud.
+
+Step 1:
+- cd terraform-aws-vpc-bastion
+- Follow README.md
+
+Step 2:
+- cd python-ansible-docker
+- Follow README.md
+
+Step 3:
+- cd kubespray
+- Follow README.md
+
+# Create a CI/CD pipeline using Jenkins outside Kubernetes cluster (not as a pod inside Kubernetes cluster).
+Runnig jenkins as docker container on bastion host
+- cd jenkins
+- Follow README.md
+
+
+# Deploy guest-book application in the development namespace.
+Will use Jenkins pipeline to deploy guest-book app in development namespace
+- cd guestbook
+- Follow README.md
+
+# Install and configure Helm in Kubernetes
+- cd installHelm
+- Follow README.md
+
+# Use Helm to deploy the application on Kubernetes Cluster from CI server.
+- Grafana, Prometheus and EFK deployed using Helm
+
+# Setup Prometheus (in monitoring namespace) for gathering host/container metrics along with health check status of the application.
+- cd installPrometheusGrafana
+- Follow README.md
+
+# Create a dashboard using Grafana to help visualize the Node/Container/API Server etc. metrices from Prometheus server. Optionally create a custom dashboard on Grafana
+- cd grafanaDashboard
+- Follow README.md
+
+# Setup log analysis using Elasticsearch, Fluentd (or Filebeat), Kibana.
+- Used helm to install EFK stack
+- cd installEFK
+- Follow README.md
+
+# Demonstrate Blue/Green and Canary deployment for the application 
+To demonstrate Blue/Green deployment I have created a single page Node.js app, listen on <lb>:8080 URL and display "Welcome BLUE!" in case blue deployment, and "Welcome GREEN!" in case green. [edit src/index.js file]
+- https://github.com/sunnynew/blueGreen.git
+

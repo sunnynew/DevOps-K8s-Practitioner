@@ -1,0 +1,53 @@
+//Jenkinsfile
+node {
+
+  stage('Verify Helm Tiller') {
+    withKubeConfig([credentialsId: 'jenkins-deployer-credentials', serverUrl: 'https://10.0.1.11:6443']) {
+      
+    	sh 'kubectl get pods --namespace kube-system | grep tiller'
+    }
+  }
+  
+   stage('Enable PV dynamic provisioning/Default Storage Class') {
+	
+    withKubeConfig([credentialsId: 'jenkins-deployer-credentials', serverUrl: 'https://10.0.1.11:6443']) {
+      sh '''
+      cat <<EOF > storageclass.yaml
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: default
+  annotations:
+    storageclass.beta.kubernetes.io/is-default-class: "true"
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp2
+  fsType: ext4
+        EOF
+         '''
+      sh 'kubectl apply -f storageclass.yaml'
+      sh 'sleep 10'
+    }
+  }
+
+   stage('Install EFK') {
+    withKubeConfig([credentialsId: 'jenkins-deployer-credentials', serverUrl: 'https://10.0.1.11:6443']) {
+      //disable logstash and enable fluentd
+      sh 'helm inspect values stable/elastic-stack > efk.values'
+      sh "sed -i ':a;N;\$!ba;s/enabled: true/enabled: false/3' efk.values"
+      sh "sed -i ':a;N;\$!ba;s/enabled: false/enabled: true/4' efk.values"
+      sh 'helm install stable/elastic-stack --name efk --namespace logging --values efk.values'
+}
+  }
+   stage('Check ELK stack') {
+    withKubeConfig([credentialsId: 'jenkins-deployer-credentials', serverUrl: 'https://10.0.1.11:6443']) {
+      //Kibana can be accessed from outside cluster using port-forward
+      sh 'sleep 10'
+      sh 'kubectl get all -n logging'
+      //run below 2 commands
+      //export POD_NAME=$(kubectl get pods --namespace logging -l "app=kibana,release=efk" -o jsonpath="{.items[0].metadata.name}")
+      //kubectl port-forward --namespace logging --address 0.0.0.0 $POD_NAME 5601:5601
+    }
+  }
+  
+}
